@@ -9,17 +9,26 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Partie à ignorer
+PARTIE_A_IGNORER = """1.✂️ Copie colle le texte écrit mais si il n'y a pas de texte écris un texte en rapport avec l'entreprise ! 
+2.⭐ Mets 5 étoiles 
+3.✅ Tape !done et ajoute une capture d'écran de ton avis publié en pièce jointe 
+4.⏰ Tu as 10 minutes maximum pour réaliser l'avis ! 
+
+@everyone"""
+
 @bot.command()
 async def good(ctx):
-    target_user_id = 1364607789296521336
+    target_user_id = 1365648480571232328
 
-    # Chercher dans les 100 derniers messages du salon
     async for message in ctx.channel.history(limit=100):
         if message.author.id == target_user_id:
             content = message.content.strip()
 
-            # On va supposer que le message est sous la forme : "lien texte"
-            parts = content.split(maxsplit=1)
+            # Supprimer la partie à ignorer
+            cleaned_content = content.replace(PARTIE_A_IGNORER, "").strip()
+
+            parts = cleaned_content.split(maxsplit=1)
 
             if len(parts) != 2:
                 await ctx.send("❌ Le dernier message de l'utilisateur n'a pas le bon format (lien + texte).")
@@ -27,12 +36,10 @@ async def good(ctx):
 
             url, search_text = parts
 
-            # Vérifier que l'url commence par http
             if not url.startswith("http"):
                 await ctx.send("❌ L'URL trouvée n'est pas valide.")
                 return
 
-            # Aller chercher la page web
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as response:
                     if response.status == 200:
@@ -41,15 +48,14 @@ async def good(ctx):
                         page_text = soup.get_text(separator=' ').lower()
 
                         if search_text.lower() in page_text:
-                            await ctx.send("✅ Avis valide tu en veux encore !avis !")
+                            await ctx.send("✅ Le texte a été trouvé sur la page !")
                         else:
-                            await ctx.send("❌ Avis non posté.")
+                            await ctx.send("❌ Texte introuvable sur la page.")
                     else:
                         await ctx.send(f"Erreur en accédant à la page (Status {response.status})")
             return
 
-    # Si aucun message trouvé
-    await ctx.send("❌ Aucun Avis en cours dans ce salon.")
+    await ctx.send("❌ Aucun message récent de cet utilisateur trouvé.")
 
 # Lancer le bot
 TOKEN = os.getenv("DISCORD_TOKEN")

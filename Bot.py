@@ -4,14 +4,15 @@ from PIL import Image
 import imagehash
 import aiohttp
 import io
-import os  # <-- important pour récupérer le token
+import os
 
-bot = commands.Bot(command_prefix="!")
+# Important : définir les intents
+intents = discord.Intents.default()
+intents.message_content = True
 
-# Base de données temporaire
+bot = commands.Bot(command_prefix="!", intents=intents)
+
 image_to_message = {}
-
-# Dernière image vue par utilisateur
 last_image_hash_by_user = {}
 
 @bot.event
@@ -23,14 +24,11 @@ async def on_message(message):
     if message.attachments:
         for attachment in message.attachments:
             if any(attachment.filename.lower().endswith(ext) for ext in ["png", "jpg", "jpeg"]):
-                # Télécharger l'image
                 async with aiohttp.ClientSession() as session:
                     async with session.get(attachment.url) as resp:
                         img_bytes = await resp.read()
                         img = Image.open(io.BytesIO(img_bytes))
                         img_hash = str(imagehash.average_hash(img))
-
-                        # Enregistrer l'image vue pour l'utilisateur
                         last_image_hash_by_user[message.author.id] = img_hash
 
     await bot.process_commands(message)
@@ -43,7 +41,7 @@ async def good(ctx):
     if img_hash and img_hash in image_to_message:
         await ctx.send(image_to_message[img_hash])
     else:
-        await ctx.send("Je ne connais pas encore cette image 😕")
+        await ctx.send("Ce n'est pas un avis google valide 😕")
 
 @bot.command()
 async def teach(ctx, *, msg):
@@ -56,12 +54,6 @@ async def teach(ctx, *, msg):
     else:
         await ctx.send("Pas d'image récente trouvée.")
 
-# ------------------------
-# Partie du TOKEN sécurisé
-# ------------------------
-
-# Le bot récupère le token de l'environnement
+# Le token depuis Railway
 TOKEN = os.getenv("DISCORD_TOKEN")
-
-# Démarrer le bot
 bot.run(TOKEN)

@@ -1,59 +1,56 @@
 import discord
 from discord.ext import commands
-from PIL import Image
-import imagehash
 import aiohttp
-import io
+from bs4 import BeautifulSoup
 import os
 
-# Important : définir les intents
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-image_to_message = {}
-last_image_hash_by_user = {}
-
-@bot.event
-async def on_ready():
-    print(f'Connecté en tant que {bot.user}!')
-
-@bot.event
-async def on_message(message):
-    if message.attachments:
-        for attachment in message.attachments:
-            if any(attachment.filename.lower().endswith(ext) for ext in ["png", "jpg", "jpeg"]):
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(attachment.url) as resp:
-                        img_bytes = await resp.read()
-                        img = Image.open(io.BytesIO(img_bytes))
-                        img_hash = str(imagehash.average_hash(img))
-                        last_image_hash_by_user[message.author.id] = img_hash
-
-    await bot.process_commands(message)
-
 @bot.command()
 async def good(ctx):
-    user_id = ctx.author.id
-    img_hash = last_image_hash_by_user.get(user_id)
+    target_user_id = 1365648480571232328
 
-    if img_hash and img_hash in image_to_message:
-        await ctx.send(image_to_message[img_hash])
-    else:
-        await ctx.send("Ce n'est pas un avis google valide 😕")
+    # Chercher dans les 100 derniers messages du salon
+    async for message in ctx.channel.history(limit=100):
+        if message.author.id == target_user_id:
+            content = message.content.strip()
 
-@bot.command()
-async def teach(ctx, *, msg):
-    user_id = ctx.author.id
-    img_hash = last_image_hash_by_user.get(user_id)
+            # On va supposer que le message est sous la forme : "lien texte"
+            parts = content.split(maxsplit=1)
 
-    if img_hash:
-        image_to_message[img_hash] = msg
-        await ctx.send("Message associé à l'image !")
-    else:
-        await ctx.send("Pas d'image récente trouvée.")
+            if len(parts) != 2:
+                await ctx.send("❌ Le dernier message de l'utilisateur n'a pas le bon format (lien + texte).")
+                return
 
-# Le token depuis Railway
+            url, search_text = parts
+
+            # Vérifier que l'url commence par http
+            if not url.startswith("http"):
+                await ctx.send("❌ L'URL trouvée n'est pas valide.")
+                return
+
+            # Aller chercher la page web
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        html = await response.text()
+                        soup = BeautifulSoup(html, 'html.parser')
+                        page_text = soup.get_text(separator=' ').lower()
+
+                        if search_text.lower() in page_text:
+                            await ctx.send("✅ Avis valide tu en veux encore !avis !")
+                        else:
+                            await ctx.send("❌ Avis non posté.")
+                    else:
+                        await ctx.send(f"Erreur en accédant à la page (Status {response.status})")
+            return
+
+    # Si aucun message trouvé
+    await ctx.send("❌ Aucun Avis en cours dans ce salon.")
+
+# Lancer le bot
 TOKEN = os.getenv("DISCORD_TOKEN")
 bot.run(TOKEN)

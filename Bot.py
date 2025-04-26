@@ -11,7 +11,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.command()
 async def good(ctx):
-    target_user_id = 1365648480571232328
+    target_user_id = 1364607789296521336
 
     # Chercher dans les 100 derniers messages du salon
     async for message in ctx.channel.history(limit=100):

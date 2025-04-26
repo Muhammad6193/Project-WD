@@ -1,65 +1,56 @@
 import discord
-import pytesseract
+from discord.ext import commands
 from PIL import Image
+import imagehash
+import aiohttp
 import io
-import os
 
-# Récupération du token via variables d'environnement
-TOKEN = os.getenv('DISCORD_TOKEN')
-intents = discord.Intents.default()
-intents.messages = True
-intents.message_content = True
-bot = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="!")
+
+# Base de données temporaire
+image_to_message = {}
+
+# Dernière image vue par user
+last_image_hash_by_user = {}
 
 @bot.event
 async def on_ready():
-    print(f'Bot connecté en tant que {bot.user}')
+    print(f'Connecté comme {bot.user}!')
 
 @bot.event
 async def on_message(message):
-    # Ignorer les messages du bot
-    if message.author == bot.user:
-        return
+    if message.attachments:
+        for attachment in message.attachments:
+            if any(attachment.filename.lower().endswith(ext) for ext in ["png", "jpg", "jpeg"]):
+                # Télécharge l'image
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(attachment.url) as resp:
+                        img_bytes = await resp.read()
+                        img = Image.open(io.BytesIO(img_bytes))
+                        img_hash = str(imagehash.average_hash(img))
 
-    if message.content == '!done':
-        await message.channel.send("🔍 Analyse des 3 derniers messages...")
+                        # Enregistre l'image vue pour l'utilisateur
+                        last_image_hash_by_user[message.author.id] = img_hash
 
-        messages = await message.channel.history(limit=1).flatten()
+    await bot.process_commands(message)
 
-        embed = discord.Embed(
-            title="Résultat de l'analyse",
-            description="Voici l'état du dernier avis envoyé 📝",
-            color=discord.Color.blue()
-        )
+@bot.command()
+async def good(ctx):
+    user_id = ctx.author.id
+    img_hash = last_image_hash_by_user.get(user_id)
 
-        images_trouvees = False
+    if img_hash and img_hash in image_to_message:
+        await ctx.send(image_to_message[img_hash])
+    else:
+        await ctx.send("Je ne connais pas encore cette image 😕")
 
-        msg = messages[0]
-        for attachment in msg.attachments:
-                if attachment.filename.endswith(('.png', '.jpg', '.jpeg')):
-                    images_trouvees = True
-                    img_bytes = await attachment.read()
-                    image = Image.open(io.BytesIO(img_bytes))
-                    text = pytesseract.image_to_string(image, lang='fra')
+@bot.command()
+async def teach(ctx, *, msg):
+    user_id = ctx.author.id
+    img_hash = last_image_hash_by_user.get(user_id)
 
-                    if "En attente" in text:
-                        resultat = "⏳ Ton avis est en attente, patiente pour voir s'il est publié."
-                    elif "Non publié" in text:
-                        resultat = "🚫 Ton avis n'est pas publié. Réessaie avec un autre compte Google, un VPN ou un autre appareil (ou les deux)."
-                    elif "NOUVEAU" in text:
-                        resultat = "✅ Ton avis est publié, c'est validé !"
-                    else:
-                        resultat = "❓ Impossible de déterminer l'état de cet avis."
-
-                    embed.add_field(
-                        name=f"Avis de {msg.author.mention}",
-                        value=resultat,
-                        inline=False
-                    )
-
-        if images_trouvees:
-            await message.channel.send(embed=embed)
-        else:
-            await message.channel.send("❌ Aucune image détectée dans les 3 derniers messages.")
-
-bot.run(TOKEN)
+    if img_hash:
+        image_to_message[img_hash] = msg
+        await ctx.send("Message associé à l'image !")
+    else:
+        await ctx.send("Pas d'image trouvée.")

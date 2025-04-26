@@ -30,14 +30,14 @@ async def good(ctx):
 
             # Séparer par lignes
             lines = cleaned_content.splitlines()
-            lines = [line.strip() for line in lines if line.strip()]
+            lines = [line.strip() for line in lines if line.strip()]  # Enlève lignes vides
 
             if len(lines) < 2:
-                await ctx.send("❌ Le dernier message de l'utilisateur n'a pas le bon format (lien + texte sur 2 lignes).")
+                await ctx.send("❌ Le dernier message de l'utilisateur n'a pas le bon format (lien sur 1ère ligne + texte en dessous).")
                 return
 
             url = lines[0]
-            search_text = lines[1]
+            search_text = ' '.join(lines[1:])  # Assemble toutes les lignes suivantes
 
             if not url.startswith("http"):
                 await ctx.send("❌ L'URL trouvée n'est pas valide.")

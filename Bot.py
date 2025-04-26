@@ -14,7 +14,7 @@ IGNORED_STARTS = ("1.", "2.", "3.", "4.", "@everyone")
 
 @bot.command()
 async def good(ctx):
-    target_user_id = 1365648480571232328
+    target_user_id = 1364607789296521336
 
     async for message in ctx.channel.history(limit=100):
         if message.author.id == target_user_id:

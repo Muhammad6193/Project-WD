@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-import undetected_chromedriver.v2 as uc
+import undetected_chromedriver as uc
 import asyncio
 
 intents = discord.Intents.default()

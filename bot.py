@@ -67,4 +67,4 @@ async def check(ctx):
     except asyncio.TimeoutError:
         await ctx.send("⏰ Temps écoulé sans réponse. Merci de recommencer.")
 
-bot.run("TON_TOKEN_DISCORD_ICI")
+bot.run("DISCORD_TOKEN")

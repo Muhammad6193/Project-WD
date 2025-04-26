@@ -2,10 +2,9 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
-from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
 import time
 
 intents = discord.Intents.default()
@@ -13,6 +12,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Cooldown de 30 secondes par utilisateur
 @bot.command()
 @commands.cooldown(1, 30, commands.BucketType.user)
 async def check(ctx):
@@ -32,17 +32,16 @@ async def check(ctx):
 
         await ctx.send("🕵️‍♂️ Recherche de l'avis en cours, patiente...")
 
-        # Setup Chrome headless
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-
-        driver = webdriver.Chrome(options=chrome_options)
+        # Lancer Chrome headless
+        options = uc.ChromeOptions()
+        options.headless = True
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        driver = uc.Chrome(options=options)
 
         try:
             driver.get(link)
-            time.sleep(5)  # attendre que la page charge
+            await asyncio.sleep(5)  # attendre que la page charge
 
             body = driver.find_element(By.TAG_NAME, "body")
             for _ in range(10):
@@ -75,4 +74,7 @@ async def check_error(ctx, error):
 
 # Lancer le bot
 TOKEN = os.getenv("DISCORD_TOKEN")
-bot.run(TOKEN)
+if TOKEN is None:
+    print("❌ DISCORD_TOKEN n'est pas défini dans les variables d'environnement.")
+else:
+    bot.run(TOKEN)

@@ -1,2 +1,0 @@
-discord.py
-undetected-chromedriver==3.5.5

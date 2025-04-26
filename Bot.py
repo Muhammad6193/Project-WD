@@ -5,7 +5,7 @@ import io
 import os
 
 # Récupération du token via variables d'environnement
-
+TOKEN = os.getenv('DISCORD_TOKEN')
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True

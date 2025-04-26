@@ -4,22 +4,31 @@ from discord.ext import commands
 import undetected_chromedriver as uc
 import asyncio
 
+# Récupération du token Discord
 TOKEN = os.getenv("DISCORD_TOKEN")
-
 if TOKEN is None:
     raise ValueError("🚨 Le token Discord n'a pas été trouvé dans les variables d'environnement Railway !")
 
+# Initialisation des intents
 intents = discord.Intents.default()
 intents.message_content = True
+
+# Initialisation du bot
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
     print(f"✅ Connecté en tant que {bot.user}")
 
+@bot.event
+async def on_message(message):
+    print(f"[LOG] Message reçu: {message.content}")
+    await bot.process_commands(message)  # Très important pour que les commandes marchent !
+
 @bot.command()
 async def check(ctx):
-    await ctx.send("📎 Merci d'envoyer le lien de la page Google Maps.")
+    print("[LOG] La commande !check a été déclenchée")
+    await ctx.send("📌 Merci d'envoyer le lien de la page Google Maps.")
 
     def check_msg(m):
         return m.author == ctx.author and m.channel == ctx.channel
@@ -47,14 +56,14 @@ async def check(ctx):
             driver.get(lien)
             await asyncio.sleep(5)
 
-            # 📜 Scroll pour charger les avis
+            # Scroll pour charger les avis
             scroll_pause_time = 2
-            for i in range(10):  # scroll 10 fois
+            for i in range(10):
                 driver.execute_script("window.scrollBy(0, 1000);")
                 print(f"[LOG] Scroll {i+1}/10 effectué")
                 await asyncio.sleep(scroll_pause_time)
 
-            # 📋 Récupération des avis
+            # Récupération des avis
             avis_elements = driver.find_elements("css selector", "div[jscontroller='e6Mltc']")
             print(f"[LOG] Nombre d'avis récupérés : {len(avis_elements)}")
 
@@ -62,7 +71,7 @@ async def check(ctx):
             for index, avis in enumerate(avis_elements):
                 try:
                     contenu = avis.text
-                    print(f"[LOG] Avis #{index+1} : {contenu[:100]}...")  # afficher début de l'avis
+                    print(f"[LOG] Avis #{index+1} : {contenu[:100]}...")
                     if texte_recherche.lower() in contenu.lower():
                         print("[LOG] AVIS CORRESPONDANT TROUVÉ !")
                         trouve = True
@@ -85,4 +94,5 @@ async def check(ctx):
     except asyncio.TimeoutError:
         await ctx.send("⏰ Temps écoulé sans réponse. Merci de recommencer.")
 
+# Démarrage du bot
 bot.run(TOKEN)

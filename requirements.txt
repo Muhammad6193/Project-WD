@@ -1,2 +1,2 @@
 discord.py
-undetected-chromedriver
+undetected-chromedriver==3.5.5

@@ -1,3 +1,24 @@
+import os
+import discord
+from discord.ext import commands
+
+# Récupération du token stocké dans les variables Railway
+TOKEN = os.getenv("DISCORD_TOKEN")
+
+# Vérification basique du token
+if TOKEN is None:
+    raise ValueError("🚨 Le token Discord n'a pas été trouvé dans les variables d'environnement Railway !")
+
+# Configuration du bot
+bot = commands.Bot(command_prefix="!")
+
+@bot.event
+async def on_ready():
+    print(f"✅ Connecté en tant que {bot.user}")
+
+# Démarrage du bot
+bot.run(TOKEN)
+
 import discord
 from discord.ext import commands
 import undetected_chromedriver as uc

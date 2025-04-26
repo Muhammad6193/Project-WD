@@ -9,13 +9,8 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Partie à ignorer
-PARTIE_A_IGNORER = """1.✂️ Copie colle le texte écrit mais si il n'y a pas de texte écris un texte en rapport avec l'entreprise ! 
-2.⭐ Mets 5 étoiles 
-3.✅ Tape !done et ajoute une capture d'écran de ton avis publié en pièce jointe 
-4.⏰ Tu as 10 minutes maximum pour réaliser l'avis ! 
-
-@everyone"""
+# Partie à ignorer - déclencheurs
+IGNORED_STARTS = ("1.", "2.", "3.", "4.", "@everyone")
 
 @bot.command()
 async def good(ctx):
@@ -24,20 +19,22 @@ async def good(ctx):
     async for message in ctx.channel.history(limit=100):
         if message.author.id == target_user_id:
             content = message.content.strip()
+            lines = content.splitlines()
+            lines = [line.strip() for line in lines if line.strip()]
 
-            # Supprimer la partie à ignorer
-            cleaned_content = content.replace(PARTIE_A_IGNORER, "").strip()
+            # Nettoyer : on coupe dès qu'on rencontre une instruction
+            cleaned_lines = []
+            for line in lines:
+                if any(line.startswith(start) for start in IGNORED_STARTS):
+                    break
+                cleaned_lines.append(line)
 
-            # Séparer par lignes
-            lines = cleaned_content.splitlines()
-            lines = [line.strip() for line in lines if line.strip()]  # Enlève lignes vides
-
-            if len(lines) < 2:
-                await ctx.send("❌ Le dernier message de l'utilisateur n'a pas le bon format (lien sur 1ère ligne + texte en dessous).")
+            if len(cleaned_lines) < 2:
+                await ctx.send("❌ Format invalide : lien + texte attendu avant les instructions.")
                 return
 
-            url = lines[0]
-            search_text = ' '.join(lines[1:])  # Assemble toutes les lignes suivantes
+            url = cleaned_lines[0]
+            search_text = ' '.join(cleaned_lines[1:])
 
             if not url.startswith("http"):
                 await ctx.send("❌ L'URL trouvée n'est pas valide.")

@@ -17,6 +17,10 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
+    # Ignorer les messages du bot
+    if message.author == bot.user:
+        return
+        
     if message.content == '!done':
         await message.channel.send("🔍 Analyse des 3 derniers messages...")
 
@@ -56,6 +60,6 @@ async def on_message(message):
         if images_trouvees:
             await message.channel.send(embed=embed)
         else:
-            await message.channel.send("❗ Aucune image trouvée dans les 3 derniers messages.")
+            await message.channel.send("❌ Aucune image détectée dans les 3 derniers messages.")
 
 bot.run(TOKEN)

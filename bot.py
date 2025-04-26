@@ -7,15 +7,12 @@ import asyncio
 # Récupération du token Discord depuis Railway
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-# Vérification que le token est présent
 if TOKEN is None:
     raise ValueError("🚨 Le token Discord n'a pas été trouvé dans les variables d'environnement Railway !")
 
-# Intents pour lire les messages
+# Configuration du bot
 intents = discord.Intents.default()
 intents.message_content = True
-
-# Configuration du bot
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
@@ -30,19 +27,19 @@ async def check(ctx):
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
-        # Attendre le lien
+        # Attente du lien
         msg_link = await bot.wait_for('message', timeout=60.0, check=check_msg)
         lien = msg_link.content.strip()
 
         await ctx.send("📝 Merci maintenant d'envoyer le texte de l'avis.")
 
-        # Attendre le texte de l'avis
+        # Attente du texte de l'avis
         msg_avis = await bot.wait_for('message', timeout=120.0, check=check_msg)
         texte_recherche = msg_avis.content.strip()
 
         await ctx.send("🔎 Recherche de l'avis... Patientez...")
 
-        # Configuration de Chrome
+        # Setup Chrome
         options = uc.ChromeOptions()
         options.binary_location = "/usr/bin/chromium"
         options.add_argument("--headless")
@@ -55,7 +52,13 @@ async def check(ctx):
             driver.get(lien)
             await asyncio.sleep(5)
 
-            # Récupération des avis
+            # 📜 Scroll pour charger les avis
+            scroll_pause_time = 2
+            for _ in range(10):  # scroll 10 fois
+                driver.execute_script("window.scrollBy(0, 1000);")
+                await asyncio.sleep(scroll_pause_time)
+
+            # 📋 Récupération des avis
             avis_elements = driver.find_elements("css selector", "div[jscontroller='e6Mltc']")
 
             trouve = False
@@ -81,5 +84,5 @@ async def check(ctx):
     except asyncio.TimeoutError:
         await ctx.send("⏰ Temps écoulé sans réponse. Merci de recommencer.")
 
-# Lancement du bot
+# Démarrage du bot
 bot.run(TOKEN)

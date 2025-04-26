@@ -1,32 +1,21 @@
 import os
 import discord
 from discord.ext import commands
-
-# Récupération du token stocké dans les variables Railway
-TOKEN = os.getenv("DISCORD_TOKEN")
-
-# Vérification basique du token
-if TOKEN is None:
-    raise ValueError("🚨 Le token Discord n'a pas été trouvé dans les variables d'environnement Railway !")
-
-# Configuration du bot
-bot = commands.Bot(command_prefix="!")
-
-@bot.event
-async def on_ready():
-    print(f"✅ Connecté en tant que {bot.user}")
-
-# Démarrage du bot
-bot.run(TOKEN)
-
-import discord
-from discord.ext import commands
 import undetected_chromedriver as uc
 import asyncio
 
+# Récupération du token Discord depuis Railway
+TOKEN = os.getenv("DISCORD_TOKEN")
+
+# Vérification que le token est présent
+if TOKEN is None:
+    raise ValueError("🚨 Le token Discord n'a pas été trouvé dans les variables d'environnement Railway !")
+
+# Intents pour lire les messages
 intents = discord.Intents.default()
 intents.message_content = True
 
+# Configuration du bot
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
@@ -41,16 +30,19 @@ async def check(ctx):
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
+        # Attendre le lien
         msg_link = await bot.wait_for('message', timeout=60.0, check=check_msg)
         lien = msg_link.content.strip()
 
         await ctx.send("📝 Merci maintenant d'envoyer le texte de l'avis.")
 
+        # Attendre le texte de l'avis
         msg_avis = await bot.wait_for('message', timeout=120.0, check=check_msg)
         texte_recherche = msg_avis.content.strip()
 
         await ctx.send("🔎 Recherche de l'avis... Patientez...")
 
+        # Configuration de Chrome
         options = uc.ChromeOptions()
         options.binary_location = "/usr/bin/chromium"
         options.add_argument("--headless")
@@ -63,6 +55,7 @@ async def check(ctx):
             driver.get(lien)
             await asyncio.sleep(5)
 
+            # Récupération des avis
             avis_elements = driver.find_elements("css selector", "div[jscontroller='e6Mltc']")
 
             trouve = False
@@ -88,4 +81,5 @@ async def check(ctx):
     except asyncio.TimeoutError:
         await ctx.send("⏰ Temps écoulé sans réponse. Merci de recommencer.")
 
-bot.run("DISCORD_TOKEN")
+# Lancement du bot
+bot.run(TOKEN)

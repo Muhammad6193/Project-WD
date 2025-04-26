@@ -2,9 +2,10 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
-import undetected_chromedriver as uc
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 import time
 
 intents = discord.Intents.default()
@@ -12,7 +13,6 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Cooldown de 30 secondes par utilisateur
 @bot.command()
 @commands.cooldown(1, 30, commands.BucketType.user)
 async def check(ctx):
@@ -32,16 +32,17 @@ async def check(ctx):
 
         await ctx.send("🕵️‍♂️ Recherche de l'avis en cours, patiente...")
 
-        # Lancer Chrome headless
-        options = uc.ChromeOptions()
-        options.headless = True
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        driver = uc.Chrome(options=options)
+        # Setup Chrome headless
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+
+        driver = webdriver.Chrome(options=chrome_options)
 
         try:
             driver.get(link)
-            await asyncio.sleep(5)  # attendre que la page charge
+            time.sleep(5)  # attendre que la page charge
 
             body = driver.find_element(By.TAG_NAME, "body")
             for _ in range(10):

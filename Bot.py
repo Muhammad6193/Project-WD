@@ -9,7 +9,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Partie à ignorer - déclencheurs
+# Déclencheurs pour arrêter l'analyse
 IGNORED_STARTS = ("1.", "2.", "3.", "4.", "@everyone")
 
 @bot.command()
@@ -20,17 +20,20 @@ async def good(ctx):
         if message.author.id == target_user_id:
             content = message.content.strip()
             lines = content.splitlines()
-            lines = [line.strip() for line in lines if line.strip()]
 
-            # Nettoyer : on coupe dès qu'on rencontre une instruction
             cleaned_lines = []
             for line in lines:
-                if any(line.startswith(start) for start in IGNORED_STARTS):
+                stripped_line = line.strip()
+                if not stripped_line:
+                    # Si ligne vide -> on arrête
                     break
-                cleaned_lines.append(line)
+                if any(stripped_line.startswith(start) for start in IGNORED_STARTS):
+                    # Si ligne commence par 1., 2., etc. -> on arrête
+                    break
+                cleaned_lines.append(stripped_line)
 
             if len(cleaned_lines) < 2:
-                await ctx.send("❌ Format invalide : lien + texte attendu avant les instructions.")
+                await ctx.send("❌ Format invalide : lien + texte attendu avant instructions/sauts de ligne.")
                 return
 
             url = cleaned_lines[0]
